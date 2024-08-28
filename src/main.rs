@@ -95,6 +95,7 @@ async fn run_server(hostname: String, port: u16, use_large_buffers: bool) -> Res
     loop {
         match listener.accept().await {
             Ok((tcp_stream, _)) => {
+                tcp_stream.set_nodelay(true)?;
                 let tls_acceptor = TlsAcceptor::from(tls_config.clone());
                 match tls_acceptor.accept(tcp_stream).await {
                     Ok(tls_stream) => {
@@ -135,6 +136,7 @@ async fn run_client(hostname: String, port: u16, use_frames: bool, use_tls: bool
         .with_no_client_auth();
     let connector = TlsConnector::from(Arc::new(config));
     let tcp_stream = TcpStream::connect(&format!("{hostname}:{port}")).await.map_err(|e| anyhow!("Failed to connect to server: {}", e))?;
+    tcp_stream.set_nodelay(true)?;
 
     let domain = ServerName::try_from(hostname.clone()).map_err(|e| anyhow!("Failed to create ServerName: {}", e))?;
     let tls_stream = connector.connect(domain, tcp_stream).await.map_err(|e| anyhow!("Failed to establish TLS connection: {}", e))?;
